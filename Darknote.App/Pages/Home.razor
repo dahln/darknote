@@ -1,0 +1,19 @@
+@page "/"
+
+<AuthorizeView>
+    <Authorized>
+        <Notes></Notes>
+    </Authorized>
+    <NotAuthorized>
+        <Login></Login>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [Parameter]
+    public string title { get; set; }
+    [Parameter]
+    public string content { get; set; }
+
+}

@@ -1,0 +1,44 @@
+{
+  "id": "org.darknote.app",  
+  "name": "Darknote",
+  "short_name": "Darknote",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "content",
+      "url": "content"
+    }
+  },
+  "description": "A sleek, modern note-taking app with a dark theme.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "orientation": "portrait",
+  "launch_handler": { "client_mode": "focus-existing" },
+  "categories": ["productivity", "notes"],
+  "related_applications": [],
+  "scope_extensions": [
+    {
+      "origin": "https://darknote.org"
+    }
+  ]
+}

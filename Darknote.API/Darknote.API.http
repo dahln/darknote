@@ -1,0 +1,8 @@
+@Darknote.API_HostAddress = http://localhost:5148
+
+GET {{Darknote.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+

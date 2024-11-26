@@ -1,0 +1,72 @@
+﻿@inject Darknote.App.Services.API API
+@inject IToastService _toastService
+
+@foreach(var collaborator in Collaborators)
+{
+    <div class="row">
+        <div class="col-md-12">
+            <div class="input-group mb-3">
+                <input readonly disabled @bind="collaborator.Email" type="text" class="form-control" placeholder="Recipient's username" aria-label="Recipient's username" aria-describedby="button-addon2">
+                <button class="btn btn-outline-danger" @onclick="() => RemoveUser(collaborator)" type="button" id="button-addon2">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+<div class="row">
+    <div class="col-md-12">
+        <h5>Add New</h5>
+        <div class="input-group mb-3">
+            <input type="text" @bind="NewCollaboratorEmail" class="form-control" placeholder="New Collaborator's Email Address" aria-label="New Collaborator's Email Address" aria-describedby="button-addon2">
+            <button class="btn btn-outline-primary" @onclick="AddUser" type="button" id="button-addon2">
+                <i class="bi bi-plus-lg me-2"></i>Add
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+
+    [Parameter]
+    public string NoteId { get; set; }
+
+    private List<Common.CollaboratorsOnNote> Collaborators { get; set;} = new List<Common.CollaboratorsOnNote>();
+    private string NewCollaboratorEmail { get ;set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Collaborators = await API.GetAsync<List<Common.CollaboratorsOnNote>>($"api/v1/note/{NoteId}/shares");
+    }
+
+    public void Confirm()
+    {
+        BlazoredModal.CloseAsync(ModalResult.Ok(string.Empty));
+    }
+
+    public void Cancel()
+    {
+        BlazoredModal.CancelAsync();
+    }
+
+    private async Task AddUser()
+    {
+        Common.CollaboratorsOnNote newCollaborator = new Common.CollaboratorsOnNote()
+        {
+            Email = NewCollaboratorEmail
+        };
+        var response = await API.PostAsync<Common.CollaboratorsOnNote>($"api/v1/note/{NoteId}/share", newCollaborator);
+        if(response != null)
+        {
+            Collaborators.Add(response);
+            NewCollaboratorEmail = string.Empty;
+        }
+    }
+
+    private async Task RemoveUser(Common.CollaboratorsOnNote collaborator)
+    {
+        await API.DeleteAsync($"api/v1/note/{NoteId}/share/{collaborator.Id}");
+        Collaborators.Remove(collaborator);
+    }
+}

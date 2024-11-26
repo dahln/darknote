@@ -1,0 +1,172 @@
+@attribute [Authorize]
+
+@using Darknote.Common
+
+@inject NavigationManager _navigationManger
+@inject Darknote.App.Services.API API
+@inject IModalService _modalService
+@inject IJSRuntime JSRuntime
+
+<div class="col-lg-8 offset-lg-2">
+
+
+<div class="row">
+    <div class="col-lg-4">
+        <button class="btn btn-primary mt-2" @onclick="CreateNoteModal"><i class="bi bi-plus-lg me-2"></i>New Note</button>
+    </div>
+    <div class="col-lg-8">
+        
+        <div class="row mt-1 searchRow">
+            <div class="col-md-12">
+                <form class="input-group float-end mt-2" @onsubmit="(() => SearchNotes(0, false))" autocomplete="off">
+                    <input type="text" class="form-control" aria-label="Text input with dropdown button" @bind="Search.FilterText" autocomplete="off" />
+                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search me-2"></i>Search</button>
+                </form>
+            </div>
+        </div>
+        <div class="row mt-1 searchRowReset">
+            <div class="col-md-12">
+                <div class="btn btn-link btn-sm float-end pointer" @onclick="(() => SearchNotes(0, true))">Reset Search</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="mt-4">
+    <SortableList Id="dragHandles" Handle=".drag-handle" OnUpdate="@SortList" Items="Items" Context="item">
+        <SortableItemTemplate>
+            <div class="pointer item my-3 p-3" style="@(string.IsNullOrEmpty(item.Color) == false ? $"border: 1px solid {item.Color}" : "")" @onclick="(() => SelectNote(item))">
+                <span id="@item.Id">
+                    <span class="ms-2 truncate">
+                        @if(item.ListEnabled)
+                        {
+                            <i class="bi bi-card-checklist list"></i>
+                        }
+                        else 
+                        {
+                            <i class="bi bi-sticky-fill note"></i>
+                        }
+                        <span class="content ms-2">@item.SuggestedTitle</span>
+                    </span>
+                    
+                    <i class="bi bi-grip-vertical float-end drag-handle ms-3"></i>
+                    @if(item.Shared)
+                    {
+                        <i class="bi bi-people-fill float-end"></i>
+                    }
+                </span>
+            </div>
+        </SortableItemTemplate>
+    </SortableList>
+</div>
+
+
+<div class="row me-2 mt-5 mb-5">
+    <div class="col-md-4 offset-md-4">
+    @if ((Search.Page + 1) < (Math.Ceiling((double)TotalFound / PageSize)))
+    {
+        <input type="button" class="btn btn-outline-primary btn-lg w-100" @onclick="(() => SearchNotes(Search.Page + 1, false, true))" value="Load More" />
+    }
+    </div>
+</div>
+
+</div>
+
+
+@code {
+    private Search Search { get; set; } = new Search();
+    private int PageSize { get; set; } = 50;
+    private List<Darknote.Common.Note> Items = new List<Darknote.Common.Note>();
+    private int TotalFound { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await SearchNotes(0, true);
+    }
+
+    async private Task SearchNotes(int? page, bool reset, bool append = false, int? pageSizeOverride = null)
+    {
+        if (reset == true)
+        {
+            Search = new Search();
+            Search.SortBy = nameof(Darknote.Common.Note.Title);
+            page = null;
+        }
+
+        Search = new Search()
+        {
+            FilterText = string.IsNullOrEmpty(Search?.FilterText) ? null : Search?.FilterText,
+            Page = page == null ? Search.Page : (int)page,
+            PageSize = pageSizeOverride != null ? pageSizeOverride.Value : PageSize,
+            SortBy = Search.SortBy,
+            SortDirection = Search.SortDirection
+        };
+
+        var response = await API.PostAsync<Common.SearchResponse<Common.Note>>($"api/v1/notes", Search, false);
+        
+        if(response != null)
+        {
+            if(append)
+                Items.AddRange(response.Results);
+            else
+                Items = response.Results;
+            TotalFound = response.Total;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SortList((int oldIndex, int newIndex) indices)
+    {
+        var (oldIndex, newIndex) = indices;
+
+        var items = this.Items;
+        var itemToMove = Items[oldIndex];
+        Items.RemoveAt(oldIndex);
+
+        if (newIndex < Items.Count)
+        {
+            Items.Insert(newIndex, itemToMove);
+        }
+        else
+        {
+            Items.Add(itemToMove);
+        }
+
+        int maxSortOrder = Items.Max(x => x.SortOrder);
+        for(int a = 0; a < Items.Count; a++)
+        {
+            Items[a].SortOrder = (maxSortOrder - a);
+        }
+
+        var saveSortOrder = Items.Select(x => new Common.SortOrderUpdate()
+        {
+            Id = x.Id,
+            NewSortOrderValue = x.SortOrder
+        }).ToList();
+        await API.PostAsync("api/v1/notes/sort", saveSortOrder, false);
+
+        StateHasChanged();
+    }
+
+    async private Task Sort(string column)
+    {
+        Search.SortBy = column;
+        Search.SortDirection = Search.SortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
+
+        await SearchNotes(Search.Page, false);
+    }
+
+    private void SelectNote(Common.Note selectedNote)
+    {
+        _navigationManger.NavigateTo($"note/{selectedNote.Id}");
+    }
+
+    private void CreateNoteModal()
+    {
+        _navigationManger.NavigateTo("note");
+    }
+
+}
+

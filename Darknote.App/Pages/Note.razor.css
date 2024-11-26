@@ -1,0 +1,68 @@
+﻿h3 {
+    font-weight: 100;
+}
+.note-wrapper {
+    min-height: 360px;
+}
+.pointer {
+    cursor: pointer;
+}
+
+.delete {
+    color: red;
+}
+.list {
+    color: greenyellow;
+}
+.share {
+    color: lightskyblue;
+}
+.recycle {
+    color: greenyellow;
+}
+.checkuncheck {
+    color: orange;
+}
+.completed {
+    color: mediumpurple;
+}
+.incomplete {
+    color: #707070;
+}
+
+.color-circle {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.strike-through {
+    background-color: #212529;
+    color: rgb(86, 86, 86);
+    text-decoration: line-through;
+}
+
+.content {
+    overflow-y: auto;
+}
+
+textarea {
+    height: calc(100vh - 232px); /* Remaining space after header and footer */
+    resize: none; /* Optional: Prevent manual resizing */
+}
+
+.drag-handle {
+    cursor: grab;
+}
+
+.item {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.owned-by {
+    font-size: 12px;
+}

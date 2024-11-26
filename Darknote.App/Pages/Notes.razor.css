@@ -1,0 +1,36 @@
+﻿.search-found {
+    font-weight: 100;
+    margin-right: 20px;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.help-icon {
+    color:greenyellow;
+}
+
+.item {
+    border-radius: 10px;
+    border: 1px solid rgb(70, 70, 70);
+    /* transition: border-color 500ms ease; */
+    color: inherit;
+    /* Optional: inherits parent text color */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.drag-handle {
+    cursor: grab;
+}
+
+.content {
+    color: rgb(179, 179, 179);
+}
+.note {
+    color: rgb(179, 179, 179);
+}
+.list {
+    color: rgb(179, 179, 179);
+}

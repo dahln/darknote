@@ -1,0 +1,516 @@
+@page "/note"
+@page "/note/{id}"
+@attribute [Authorize]
+
+@inject Darknote.App.Services.API API
+@inject IToastService _toastService
+@inject IModalService _modalService
+@inject NavigationManager _navigationManager
+@inject IJSRuntime JS
+
+@using Markdig
+@using Markdig.Extensions.AutoLinks
+
+<NavigationLock OnBeforeInternalNavigation="OnLocationChanging"></NavigationLock>
+
+<div class="col-md-8 offset-lg-2 note-wrapper">
+    <div class="row mt-3">
+        <div class="col-lg-12">
+            <NavLink href="/">
+                <i class="bi bi-arrow-left-short"></i> Back to Notes
+            </NavLink>
+            @if(string.IsNullOrEmpty(NoteInstance.OwnedByEmail) == false)
+            {
+                <span class="float-end owned-by">
+                    Owned by @NoteInstance.OwnedByEmail
+                </span>
+            }
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <button class="btn btn-outline-primary me-1 mb-2" @onclick="Load" disabled="@(Id == null)">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <div class="btn-group me-2 mb-2">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                    @if (string.IsNullOrEmpty(NoteInstance.Color) == false)
+                    {
+                        <span class="color-circle" style="background-color: @(NoteInstance.Color);"></span>
+                    }
+                    Border
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#39FF14" @onclick="@(() => SelectColor("#39FF14", "Green"))">
+                            <span class="color-circle" style="background-color: #39FF14;"></span> Green
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#FF6EC7" @onclick="@(() => SelectColor("#FF6EC7", "Pink"))">
+                            <span class="color-circle" style="background-color: #FF6EC7;"></span> Pink
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#1B03A3" @onclick="@(() => SelectColor("#1B03A3", "Blue"))">
+                            <span class="color-circle" style="background-color: #1B03A3;"></span> Blue
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#FFFF33" @onclick="@(() => SelectColor("#FFFF33", "Yellow"))">
+                            <span class="color-circle" style="background-color: #FFFF33;"></span> Yellow
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#FF5F1F" @onclick="@(() => SelectColor("#FF5F1F", "Orange"))">
+                            <span class="color-circle" style="background-color: #FF5F1F;"></span> Orange
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#9D00FF" @onclick="@(() => SelectColor("#9D00FF", "Purple"))">
+                            <span class="color-circle" style="background-color: #9D00FF;"></span> Purple
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#00FFFF" @onclick="@(() => SelectColor("#00FFFF", "Cyan"))">
+                            <span class="color-circle" style="background-color: #00FFFF;"></span> Cyan
+                        </div>
+                    </li>
+                    <li>
+                        <div class="dropdown-item pointer" data-value="#FF073A" @onclick="@(() => SelectColor("#FF073A", "Red"))">
+                            <span class="color-circle" style="background-color: #FF073A;"></span> Red
+                        </div>
+                    </li>
+                </ul>
+            </div>
+                
+            @if(NoteInstance.IsOwner == true)
+            {
+            <button class="btn @(NoteInstance.Shared ? "btn-primary" : "btn-outline-secondary") me-2 mb-2" disabled="@(Id == null)" @onclick="ManageAuthorizedUsers">
+                <i class="bi bi-people @(Id == null ? "" : "share")"></i>
+            </button> 
+            }
+            @if(NoteInstance.Shared == true && NoteInstance.IsOwner == false)
+            {
+            <button class="btn btn-outline-secondary me-2 mb-2" disabled="@(Id == null)" @onclick="LeaveNote">
+                <i class="bi bi-person-walking @(Id == null ? "" : "delete")"></i>
+            </button> 
+            }
+            <button class="btn @(NoteInstance.ListEnabled ? "btn-success" : "btn-outline-secondary") me-2 mb-2" @onclick="ToggleList">
+                <i class="bi bi-list-check list"></i>
+            </button> 
+            @if(NoteInstance.Shared == false)
+            {
+            <button class="btn btn-outline-secondary me-2 mb-2" @onclick="Delete" disabled="@(Id == null)">
+                <i class="bi bi-trash @(Id == null ? "" : "delete")"></i>
+            </button> 
+            }
+            @if(NoteInstance.ListEnabled)
+            {
+            <button title="Delete all completed items" class="btn btn-outline-secondary me-1 mb-2" disabled="@(Id == null)" @onclick="DeleteAllCompleted">
+                <i class="bi bi-fire @(Id == null ? "" : "checkuncheck")"></i>
+            </button> 
+            <button title="Uncheck all items" class="btn btn-outline-secondary me-2 mb-2" disabled="@(Id == null)" @onclick="UncheckAll">
+                <i class="bi bi-recycle @(Id == null ? "" : "recycle")"></i>
+            </button> 
+            }
+            @if(Editing)
+            {
+                <button class="btn btn-success mb-2" @onclick="ToggleEdit">
+                    Save
+                </button>
+            }
+            else 
+            {
+                <button class="btn btn-primary mb-2" @onclick="ToggleEdit">
+                    Edit
+                </button>
+            }
+        </div>
+    </div>
+    <div class="row mt-5 mb-2">
+        <div class="col-md-12">
+            @if(Editing)
+            {
+                <input id="NoteTitle" type="text" class="form-control form-control-lg" placeholder="Title" @bind="NoteInstance.Title" maxlength="1000" />
+            }
+            else if(string.IsNullOrEmpty(NoteInstance.Title) == false)
+            {
+                <h3>@NoteInstance.Title</h3>
+            }
+        </div>
+    </div>
+    <div class="row mt-1" style="@(string.IsNullOrEmpty(NoteInstance.Color) == false ? $"border: 1px solid {NoteInstance.Color}; border-radius: 10px; padding: 20px 4px 7px 4px; margin-left:0px; margin-right:0px; margin-bottom: 20px;" : "")">
+        <div class="col-md-12">
+            @if(NoteInstance.ListEnabled == false)
+            {
+                @if(Editing)
+                {
+                    <div class="col-12">
+                        <textarea id="NoteContentEdit" class="form-control" rows="15" maxlength="100000"
+                            placeholder="Your witty and possibly important note..."
+                            @bind-value="NoteInstance.Content" 
+                            @bind-value:event="oninput"></textarea>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-12 readonly-content">
+                        @((MarkupString)ContentPreview)
+                    </div>
+                }
+            }
+            else 
+            {
+                <SortableList Id="dragHandles" Handle=".drag-handle" OnUpdate="@SortList" Items="NoteInstance.NoteListItems" Context="line">
+                    <SortableItemTemplate>
+                        <div class="input-group input-group-lg mb-2 item" @onkeyup="ItemKeyEvent">
+                            <span class="input-group-text" @onclick="() => ItemToggle(line)">
+                                @if(line.Completed)
+                                {
+                                    <i class="bi bi-check-circle-fill completed pointer"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-square incomplete pointer"></i>
+                                }
+                            </span>
+                            <input id="@line.Id" type="text" class="form-control @(line.Completed ? "strike-through" : "")" @bind="line.Content" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000" >
+                            <button class="btn btn-outline-secondary" @onclick="() => DeleteListItem(line)">
+                                <i class="bi bi-trash delete"></i>
+                            </button>
+                            <span class="input-group-text">
+                                <i class="bi bi-grip-vertical drag-handle"></i>
+                            </span>
+                        </div>
+                    </SortableItemTemplate>
+                </SortableList>
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <button class="btn btn-outline-success" @onclick="AddNewListItem">
+                            <i class="bi bi-plus-lg me-2"></i>New Item
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; }
+
+    
+    [Parameter]
+    public string title { get; set; }
+    [Parameter]
+    public string content { get; set; }
+
+    private Darknote.Common.Note NoteInstance = new Darknote.Common.Note();
+    private string ContentPreview => Markdown.ToHtml(NoteInstance.Content, BuildPipeline());
+    private bool Editing { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Load();
+        Editing = string.IsNullOrEmpty(Id) ? true : false;
+
+        var query = _navigationManager.ToAbsoluteUri(_navigationManager.Uri).Query;
+        var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+        if(queryParams.Count > 0)
+        {
+            NoteInstance.Title = queryParams["title"];
+            NoteInstance.Content = queryParams["content"];
+        }
+    }
+
+    async private Task<ValueTask> OnLocationChanging(LocationChangingContext context)
+    {
+        if(Editing && (string.IsNullOrEmpty(NoteInstance.Title) == false || string.IsNullOrEmpty(NoteInstance.Content) == false || NoteInstance.NoteListItems.Any()))
+            await Save();
+
+        return ValueTask.CompletedTask;
+    }
+
+    private async Task Load()
+    {
+        if (Id != null)
+        {
+            NoteInstance = await API.GetAsync<Common.Note>($"api/v1/note/{Id}");
+            if(NoteInstance == null)
+                _toastService.ShowError("Note failed to load");
+            if(NoteInstance.ListEnabled && NoteInstance.NoteListItems.Any() == false)
+                await AddNewListItem();    
+        }
+        else
+        {
+            await JS.InvokeAsync<string>("setFocusById", "NoteContentEdit");
+        }
+    }
+
+    async private Task Save()
+    {
+        if (string.IsNullOrEmpty(NoteInstance.Title))
+            NoteInstance.Title = "";
+            
+        if (string.IsNullOrEmpty(Id))
+        {
+            NoteInstance.Id = await API.PostAsync<string>("api/v1/note", NoteInstance, false);
+            Id = NoteInstance.Id;
+            _navigationManager.NavigateTo($"/note/{Id}");
+        }
+        else if (!string.IsNullOrEmpty(Id))
+        {
+            await API.PutAsync($"api/v1/note/{Id}", NoteInstance, false);
+        }
+    }
+
+    async private Task Delete()
+    {
+        var options = new ModalOptions() 
+        { 
+            Position = ModalPosition.TopCenter,
+            Size = ModalSize.ExtraLarge,
+            Class = "bg-dark text-white modal-custom modal-size-large",
+            OverlayCustomClass = "custom-modal-overlay"
+        };
+
+        var modal = _modalService.Show<ConfirmDialog>("Are you sure you want to delete this note?", options);
+        var modalResult = await modal.Result;
+
+        if (modalResult.Cancelled) { }
+        else
+        {
+            var response = await API.DeleteAsync($"api/v1/note/{Id}");
+            _navigationManager.NavigateTo("/");
+        }
+    }
+
+    private MarkdownPipeline BuildPipeline()
+    {
+        var pipeline = new MarkdownPipelineBuilder()
+        .UseAutoLinks(new AutoLinkOptions { OpenInNewWindow = true })    
+        .UseSoftlineBreakAsHardlineBreak()
+        .UsePipeTables()
+        .Build();
+
+        pipeline.Extensions.RemoveAll(ext => ext is Markdig.Extensions.TaskLists.TaskListExtension);
+
+        return pipeline;
+    }
+
+    private async Task SortList((int oldIndex, int newIndex) indices)
+    {
+        var (oldIndex, newIndex) = indices;
+
+        var items = this.NoteInstance.NoteListItems;
+        var itemToMove = NoteInstance.NoteListItems[oldIndex];
+        NoteInstance.NoteListItems.RemoveAt(oldIndex);
+
+        if (newIndex < NoteInstance.NoteListItems.Count)
+        {
+            NoteInstance.NoteListItems.Insert(newIndex, itemToMove);
+        }
+        else
+        {
+            NoteInstance.NoteListItems.Add(itemToMove);
+        }
+
+        for(int a = 0; a < NoteInstance.NoteListItems.Count; a++)
+        {
+            NoteInstance.NoteListItems[a].SortOrder = a;
+        }
+
+        var saveSortOrder = NoteInstance.NoteListItems.Select(x => new Common.SortOrderUpdate()
+        {
+            Id = x.Id,
+            NewSortOrderValue = x.SortOrder
+        }).ToList();
+        await API.PostAsync("api/v1/items/sort", saveSortOrder, false);
+
+        StateHasChanged();
+    }
+
+    public async Task ToggleEdit()
+    {
+        Editing = Editing ? false : true;
+
+        if(Editing == false)
+            await Save();
+    }
+
+    private async Task SelectColor(string color, string colorName)
+    {
+        NoteInstance.Color = color;
+        await Save();
+    }
+
+    async private Task ItemToggle(Common.NoteListItem listItem)
+    {
+        listItem.Completed = listItem.Completed ? false : true;
+        await SaveListItem(listItem);
+    }
+
+    async private Task SaveListItem(Common.NoteListItem listItem)
+    {
+        await API.PutAsync($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
+    }
+
+    async private Task DeleteListItem(Common.NoteListItem listItem, bool removeFromActiveList = true)
+    {
+        await API.DeleteAsync($"api/v1/note/{Id}/item/{listItem.Id}", false);
+        if(removeFromActiveList)
+            NoteInstance.NoteListItems.Remove(listItem);
+    }
+
+    private async Task ToggleList()
+    {
+        NoteInstance.ListEnabled = NoteInstance.ListEnabled ? false : true;
+        await Save();
+
+        //Create list from note
+        if(NoteInstance.ListEnabled && string.IsNullOrEmpty(NoteInstance.Content) == false)
+        {
+            var lines = NoteInstance.Content.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).ToList();
+
+            NoteInstance.NoteListItems = new List<Common.NoteListItem>();
+            foreach(var line in lines)
+            {
+                var newItemFromNoteLine = new Common.NoteListItem()
+                {
+                    Content = line
+                };
+                NoteInstance.NoteListItems.Add(newItemFromNoteLine);
+                await SaveListItem(newItemFromNoteLine);
+            }
+            NoteInstance.Content = string.Empty;
+            await Save();
+        }
+        if(NoteInstance.ListEnabled && string.IsNullOrEmpty(NoteInstance.Content) == true)
+        {
+            var newEmptyLineItem = new Common.NoteListItem();
+            NoteInstance.NoteListItems.Add(newEmptyLineItem);
+            await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
+            NoteInstance.Content = string.Empty;
+            await SaveListItem(newEmptyLineItem);
+        }
+        else
+        {
+            //Must be a for loop because we are using the API to delete them and then remove them from the list.
+            for(int a = 0; a < NoteInstance.NoteListItems.Count; a++)
+            {
+                await DeleteListItem(NoteInstance.NoteListItems[a], false);
+            }
+            //Create note from list
+            NoteInstance.Content = string.Join(Environment.NewLine, NoteInstance.NoteListItems.Select(x => x.Content).ToList()).Trim();
+            NoteInstance.NoteListItems = new List<Common.NoteListItem>();
+            await Save();
+        }
+    }
+
+    private async Task ItemKeyEvent(KeyboardEventArgs e)
+    {
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
+        {
+            var newEmptyLineItem = new Common.NoteListItem();
+            NoteInstance.NoteListItems.Add(newEmptyLineItem);
+            await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
+            await SaveListItem(newEmptyLineItem);
+        }
+    }
+
+    private async Task AddNewListItem()
+    {
+        var newEmptyLineItem = new Common.NoteListItem();
+        NoteInstance.NoteListItems.Add(newEmptyLineItem);
+        await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
+        await SaveListItem(newEmptyLineItem);
+    }
+
+    private async Task DeleteAllCompleted()
+    {
+        var options = new ModalOptions() 
+        { 
+            Position = ModalPosition.TopCenter,
+            Size = ModalSize.ExtraLarge,
+            Class = "bg-dark text-white modal-custom modal-size-large",
+            OverlayCustomClass = "custom-modal-overlay"
+        };
+
+        var modal = _modalService.Show<ConfirmDialog>("Are you sure you want to delete all completed items?", options);
+        var modalResult = await modal.Result;
+
+        if (modalResult.Cancelled) { }
+        else
+        {
+            foreach(var item in NoteInstance.NoteListItems.Where(x => x.Completed))
+            {
+                await DeleteListItem(item, false);                
+            }
+            NoteInstance.NoteListItems = NoteInstance.NoteListItems.Where(x => x.Completed == false).ToList();
+        }
+    }
+
+    private async Task UncheckAll()
+    {
+        foreach(var item in NoteInstance.NoteListItems)
+        {
+            item.Completed = false;
+            await SaveListItem(item);
+        }
+    }
+
+    private async Task ManageAuthorizedUsers()
+    {
+        var options = new ModalOptions() 
+        { 
+            Position = ModalPosition.TopCenter,
+            Size = ModalSize.ExtraLarge,
+            Class = "bg-dark text-white modal-custom modal-size-large",
+            OverlayCustomClass = "custom-modal-overlay"
+        };
+
+        var parameters = new ModalParameters().Add(nameof(AuthorizedUsers.NoteId), Id);
+
+        var modal = _modalService.Show<AuthorizedUsers>("Collaborators", parameters, options);
+        var modalResult = await modal.Result;
+
+        if (modalResult.Cancelled) { }
+        else
+        {
+            
+        }
+    }
+
+    private async Task LeaveNote()
+    {
+        var options = new ModalOptions() 
+        { 
+            Position = ModalPosition.TopCenter,
+            Size = ModalSize.ExtraLarge,
+            Class = "bg-dark text-white modal-custom modal-size-large",
+            OverlayCustomClass = "custom-modal-overlay"
+        };
+
+        var modal = _modalService.Show<ConfirmDialog>("Are you sure you want to leave this shared note?", options);
+        var modalResult = await modal.Result;
+
+        if (modalResult.Cancelled) { }
+        else
+        {
+            var response = await API.DeleteAsync($"api/v1/note/{Id}/user");
+            _navigationManager.NavigateTo("/");
+        }
+    }
+}
+
+    
+

@@ -1,0 +1,27 @@
+﻿.navbar-brand {
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    letter-spacing: 7px;
+    user-select: none;
+}
+
+.navbar-brand-logo{
+    height: 35px;
+}
+
+.search-icon {
+    color: orangered;
+}
+
+.user-icon {
+    color: steelblue;
+    font-size: 1em;
+}
+
+.signout-icon {
+    color:white;
+}
+
+.admin-icon {
+    color: mediumpurple;
+}
