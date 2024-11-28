@@ -1,3 +1,5 @@
+[![CI/CD](https://github.com/dahln/darknote/actions/workflows/dotnet-build-deploy.yml/badge.svg)](https://github.com/dahln/darknote/actions/workflows/dotnet-build-deploy.yml)
+
 ## What & Why
 Darknote is an open-source, user-friendly, minimal notes app. It allows users to create notes and lists and share notes and lists with other people. 
 
