@@ -24,6 +24,7 @@ jobs:
       - name: Build, publish, and deploy
         run: |
           sudo apt-get update
+          sudo apt-get install -y openssh-client
           sudo apt-get install -y sshpass
           dotnet publish Darknote.API -c Release 
           sshpass -p ${{ secrets.SERVERPASSWORD }} scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVERPORT }} -r ${{ github.workspace }}/Darknote.API/bin/Release/net9.0/publish/* ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }}:/var/www/darknote      
