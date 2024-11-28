@@ -25,7 +25,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
-          dotnet publish darknote.API -c Release 
+          dotnet publish Darknote.API -c Release 
           sshpass -p ${{ secrets.SERVERPASSWORD }} scp -o StrictHostKeyChecking=no -P ${{secrets.SERVERPORT}} -r ${{ github.workspace }}/darknote.API/bin/Release/net8.0/publish/* ${{secrets.SERVERUSERNAME}}@${{secrets.SERVERADDRESS}}:/var/www/darknote      
           sshpass -p ${{ secrets.SERVERPASSWORD }} ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart kestrel-darknote.service"
           sshpass -p ${{ secrets.SERVERPASSWORD }} ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart nginx"
