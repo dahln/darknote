@@ -1,0 +1,25 @@
+name: Sqlite DB Backup
+
+on:
+  schedule:
+    - cron: "0 12 * * *" #Run at 6am Mountain Time
+
+jobs:
+  scp-copy-and-artifact:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Copy File via SCP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          sshpass -p '${{ secrets.SERVERPASSWORD }}' scp -o StrictHostKeyChecking=no -P ${{secrets.SERVERPORT}} ${{secrets.SERVERUSERNAME}}@${{secrets.SERVERADDRESS}}:/var/www/darknote/Darknote.db ${{ github.workspace }}/Darknote.db
+
+      - name: Archive Copied File
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: ${{ github.workspace }}/Darknote.db
