@@ -239,8 +239,8 @@ namespace Darknote.APi.Controllers
             string userId = User.GetUserId();
 
             var noteIdsToUpdate = content.Select(x => x.Id).ToList();
-            var notesToUpdate = _db.Notes.Where(x => x.OwnerId == userId && noteIdsToUpdate.Contains(x.Id)).ToList();
-            var notesSharedToUpdate = _db.NoteAuthorizedUsers.Where(x => x.UserId == userId && noteIdsToUpdate.Contains(x.NoteId)).ToList();
+            var notesToUpdate = await _db.Notes.Where(x => x.OwnerId == userId && noteIdsToUpdate.Contains(x.Id)).ToListAsync();
+            var notesSharedToUpdate = await _db.NoteAuthorizedUsers.Where(x => x.UserId == userId && noteIdsToUpdate.Contains(x.NoteId)).ToListAsync();
             foreach(var note in notesToUpdate)
             {
                 note.SortOrder = content.FirstOrDefault(x => x.Id == note.Id).NewSortOrderValue;
@@ -248,6 +248,32 @@ namespace Darknote.APi.Controllers
             foreach(var note in notesSharedToUpdate)
             {
                 note.SortOrder = content.FirstOrDefault(x => x.Id == note.NoteId).NewSortOrderValue;
+            }
+            await _db.SaveChangesAsync();
+
+            //Reconcile SortOrder for ALL notes (owned or shared) for this user
+            var userNotes = await _db.Notes.Where(x => x.OwnerId == userId).ToListAsync();
+            var userNotesSharedByOthers = await _db.NoteAuthorizedUsers.Where(x => x.UserId == userId).ToListAsync();
+            List<Common.SortOrderUpdate> notes = new List<Common.SortOrderUpdate>();
+            notes.AddRange(userNotes.Select(x => new Common.SortOrderUpdate()
+            {
+                Id = x.Id,
+                NewSortOrderValue = x.SortOrder
+            }));
+            notes.AddRange(userNotesSharedByOthers.Select(x => new Common.SortOrderUpdate()
+            {
+                Id = x.Id,
+                NewSortOrderValue = x.SortOrder
+            }));
+            int reconciledSortValue = notes.Count();
+            foreach(var note in notes.OrderByDescending(x => x.NewSortOrderValue))
+            {
+                var noteToUpdate = await _db.Notes.FirstOrDefaultAsync(x => x.OwnerId == userId && x.Id == note.Id);
+                var shareToUpdate = await _db.NoteAuthorizedUsers.FirstOrDefaultAsync(x => x.UserId == userId && x.NoteId == note.Id);
+                if(noteToUpdate != null)
+                    noteToUpdate.SortOrder = reconciledSortValue--;
+                else if(shareToUpdate != null)
+                    shareToUpdate.SortOrder = reconciledSortValue--;
             }
             await _db.SaveChangesAsync();
 

@@ -78,7 +78,8 @@ namespace Darknote.API.Controllers
                     OwnerId = newUser.Id,
                     Title = "Getting Started",
                     Content = "Welcome to Darknote!\n\nUse Darknote to keep notes. You can create note or lists. You can share your notes with other people (this comes in handy if you need a shared grocery list).\n\nThis video shows a quick demo on how to use Darknote:\n\nhttps://darknote.org#HowTo",
-                    Color = "#39FF14"                   
+                    Color = "#39FF14",
+                    SortOrder = 2                 
                 };
                 _db.Notes.Add(tutorialNote);
                 await _db.SaveChangesAsync();
@@ -89,7 +90,8 @@ namespace Darknote.API.Controllers
                     Title = "Shopping List",
                     ListEnabled = true,
                     Content = "",  
-                    Color = ""                  
+                    Color = "",
+                    SortOrder = 1                  
                 };
                 _db.Notes.Add(tutorialList);
                 await _db.SaveChangesAsync();
