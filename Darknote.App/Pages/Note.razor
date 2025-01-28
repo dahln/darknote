@@ -302,6 +302,9 @@
         .UseAutoLinks(new AutoLinkOptions { OpenInNewWindow = true })    
         .UseSoftlineBreakAsHardlineBreak()
         .UsePipeTables()
+        .UseMediaLinks()
+        .UseEmojiAndSmiley()
+        .UseMathematics()
         .Build();
 
         pipeline.Extensions.RemoveAll(ext => ext is Markdig.Extensions.TaskLists.TaskListExtension);

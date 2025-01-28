@@ -527,7 +527,7 @@ namespace Darknote.APi.Controllers
             else if(string.IsNullOrEmpty(note.Content) == false && note.ListEnabled == false)
                 title = string.Join(" ", note.Content.Split(' ','\n').Take(wordCountToReturn)) + (note.Content.Split(' ','\n').Count() > wordCountToReturn ? "..." : "");
             else if(note.NoteListItems.Any() && note.ListEnabled == true)
-                title = note.NoteListItems.FirstOrDefault().Content;
+                title = string.Join(" ", note.NoteListItems.Where(x => string.IsNullOrEmpty(x.Content) == false).FirstOrDefault().Content.Split(' ','\n').Take(wordCountToReturn)) + (note.NoteListItems.Where(x => string.IsNullOrEmpty(x.Content) == false).FirstOrDefault().Content.Count() > wordCountToReturn ? "..." : "");
 
             return title;
         }
