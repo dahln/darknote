@@ -349,19 +349,21 @@ namespace Darknote.APi.Controllers
                     Completed = model.Completed,
                     SortOrder = newSortOrder
                 };
+                model.SortOrder = newSortOrder;
 
                 _db.NoteListItems.Add(newNoteListItem);
                 await _db.SaveChangesAsync();
             }
             else
             {
+                model.Id = item.Id;
                 item.Completed = model.Completed;
                 item.Content = model.Content;
                 await _db.SaveChangesAsync();
             }
 
 
-            return Ok();
+            return Ok(model);
         }
 
         [Authorize]

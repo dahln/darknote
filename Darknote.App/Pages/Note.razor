@@ -175,7 +175,9 @@
                                     <i class="bi bi-square incomplete pointer"></i>
                                 }
                             </span>
-                            <input id="@line.Id" type="text" class="form-control @(line.Completed ? "strike-through" : "")" @bind="line.Content" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000" >
+                            <div id="@line.Id" contenteditable="true" class="form-control @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
+                                @line.Content
+                            </div>
                             <button class="btn btn-outline-secondary" @onclick="() => DeleteListItem(line)">
                                 <i class="bi bi-trash delete"></i>
                             </button>
@@ -361,7 +363,19 @@
 
     async private Task SaveListItem(Common.NoteListItem listItem)
     {
-        await API.PutAsync($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
+        // Get the content from the div using JSInterop
+        var updatedContent = await JS.InvokeAsync<string>("getContentById", listItem.Id);
+
+        // Update the line.Content with the new value
+        listItem.Content = updatedContent;
+
+        listItem = await API.PutAsync<Common.NoteListItem>($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
+        await JS.InvokeAsync<string>("setContentById", listItem.Id, listItem.Content);
+    }
+
+    async private Task CreateNewListItem(Common.NoteListItem listItem)
+    {
+        await API.PutAsync<Common.NoteListItem>($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
     }
 
     async private Task DeleteListItem(Common.NoteListItem listItem, bool removeFromActiveList = true)
@@ -389,7 +403,7 @@
                     Content = line
                 };
                 NoteInstance.NoteListItems.Add(newItemFromNoteLine);
-                await SaveListItem(newItemFromNoteLine);
+                await CreateNewListItem(newItemFromNoteLine);
             }
             NoteInstance.Content = string.Empty;
             await Save();
@@ -400,7 +414,7 @@
             NoteInstance.NoteListItems.Add(newEmptyLineItem);
             await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
             NoteInstance.Content = string.Empty;
-            await SaveListItem(newEmptyLineItem);
+            await CreateNewListItem(newEmptyLineItem);
         }
         else
         {
@@ -418,13 +432,13 @@
 
     private async Task ItemKeyEvent(KeyboardEventArgs e)
     {
-        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
+        @* if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
         {
             var newEmptyLineItem = new Common.NoteListItem();
             NoteInstance.NoteListItems.Add(newEmptyLineItem);
             await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
             await SaveListItem(newEmptyLineItem);
-        }
+        } *@
     }
 
     private async Task AddNewListItem()
@@ -432,7 +446,7 @@
         var newEmptyLineItem = new Common.NoteListItem();
         NoteInstance.NoteListItems.Add(newEmptyLineItem);
         await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
-        await SaveListItem(newEmptyLineItem);
+        await CreateNewListItem(newEmptyLineItem);
     }
 
     private async Task DeleteAllCompleted()
