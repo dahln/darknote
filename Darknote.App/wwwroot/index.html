@@ -57,19 +57,22 @@
     <script>
         function getContentById(id) {
             var element = document.getElementById(id);
-            return element ? element.innerText : null;
+            if(element != null && element != undefined)
+                return element ? element.innerText : null;
         }
     </script>
     <script>
         function clearContentById(id) {
             var element = document.getElementById(id);
-            element.innerText = "";
+            if(element != null && element != undefined)
+                element.innerText = "";
         }
     </script>
     <script>
         function setContentById(id, content) {
             var element = document.getElementById(id);
-            element.innerText = content;
+            if(element != null && element != undefined)
+                element.innerText = content;
         }
     </script>
 
