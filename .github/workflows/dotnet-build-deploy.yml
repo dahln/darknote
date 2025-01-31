@@ -21,14 +21,23 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Create SSH Key Temp File
+        run: |
+          # Write the private key from the secret to a temporary file
+          echo "${{ secrets.SERVERKEY }}" > private_key
+          # Secure the key file
+          chmod 600 private_key
+
       - name: Build, publish, and deploy
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SERVERKEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
           sudo apt-get update && sudo apt-get upgrade -y
-          sudo apt-get install -y sshpass openssh-client
+          sudo apt-get install -y openssh-client
           dotnet publish Darknote.API -c Release 
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -P ${{ secrets.SERVERPORT }} -r ${{ github.workspace }}/Darknote.API/bin/Release/net9.0/publish/* ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }}:/var/www/darknote      
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart kestrel-darknote.service"
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart nginx"
+          scp -o StrictHostKeyChecking=no -i private_key -P ${{ secrets.SERVERPORT }} -r ${{ github.workspace }}/Darknote.API/bin/Release/net9.0/publish/* ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }}:/var/www/darknote      
+          ssh -o StrictHostKeyChecking=no -i private_key -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart kestrel-darknote.service"
+          ssh -o StrictHostKeyChecking=no -i private_key -p ${{ secrets.SERVERPORT }} ${{ secrets.SERVERUSERNAME }}@${{ secrets.SERVERADDRESS }} "sudo systemctl restart nginx"
+
+      - name: Cleanup SSH Key
+        run: |
+          # Remove the key file after use
+          rm -f private_key
