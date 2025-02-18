@@ -433,16 +433,18 @@
         }
     }
 
+    @* 
     private async Task ItemKeyEvent(KeyboardEventArgs e)
     {
-        @* if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
         {
             var newEmptyLineItem = new Common.NoteListItem();
             NoteInstance.NoteListItems.Add(newEmptyLineItem);
             await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
             await SaveListItem(newEmptyLineItem);
-        } *@
-    }
+        }
+    } 
+    *@
 
     private async Task AddNewListItem()
     {
