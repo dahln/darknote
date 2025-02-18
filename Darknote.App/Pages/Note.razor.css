@@ -50,7 +50,7 @@
 }
 
 textarea {
-    height: calc(100vh - 232px); /* Remaining space after header and footer */
+    height: calc(100vh - 287px); /* Remaining space after header and footer */
     resize: none; /* Optional: Prevent manual resizing */
 }
 
