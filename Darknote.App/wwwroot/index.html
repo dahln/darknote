@@ -75,6 +75,11 @@
                 element.innerText = content;
         }
     </script>
+    <script>
+        function removeBrFromItemContent() {
+            document.querySelectorAll('.ItemContent br').forEach(br => br.remove());
+        }
+    </script>
 
 </body>
 

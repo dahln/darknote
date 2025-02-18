@@ -164,7 +164,7 @@
             {
                 <SortableList Id="dragHandles" Handle=".drag-handle" OnUpdate="@SortList" Items="NoteInstance.NoteListItems" Context="line">
                     <SortableItemTemplate>
-                        <div class="input-group input-group-lg mb-2 item" @onkeyup="ItemKeyEvent">
+                        <div class="input-group input-group-lg mb-2 item">
                             <span class="input-group-text" @onclick="() => ItemToggle(line)">
                                 @if(line.Completed)
                                 {
@@ -175,7 +175,7 @@
                                     <i class="bi bi-square incomplete pointer"></i>
                                 }
                             </span>
-                            <div id="@line.Id" contenteditable="true" class="form-control @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
+                            <div @onkeyup="ItemKeyEvent" id="@line.Id" contenteditable="true" class="form-control ItemContent @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
                                 @line.Content
                             </div>
                             <button class="btn btn-outline-secondary" @onclick="() => DeleteListItem(line)">
@@ -374,6 +374,7 @@
 
         listItem = await API.PutAsync<Common.NoteListItem>($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
         await JS.InvokeAsync<string>("setContentById", listItem.Id, listItem.Content);
+        await JS.InvokeVoidAsync("removeBrFromItemContent");
     }
 
     async private Task CreateNewListItem(Common.NoteListItem listItem)
@@ -410,6 +411,8 @@
             }
             NoteInstance.Content = string.Empty;
             await Save();
+
+            Editing = true;
         }
         if(NoteInstance.ListEnabled && string.IsNullOrEmpty(NoteInstance.Content) == true)
         {
@@ -418,6 +421,8 @@
             await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
             NoteInstance.Content = string.Empty;
             await CreateNewListItem(newEmptyLineItem);
+
+            Editing = true;
         }
         else
         {
@@ -430,13 +435,15 @@
             NoteInstance.Content = string.Join(Environment.NewLine, NoteInstance.NoteListItems.Select(x => x.Content).ToList()).Trim();
             NoteInstance.NoteListItems = new List<Common.NoteListItem>();
             await Save();
+
+            Editing = true;
         }
     }
 
-    @* 
+    
     private async Task ItemKeyEvent(KeyboardEventArgs e)
     {
-        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && NoteInstance.NoteListItems.Any() && string.IsNullOrEmpty(NoteInstance.NoteListItems.LastOrDefault().Content) == false)
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
         {
             var newEmptyLineItem = new Common.NoteListItem();
             NoteInstance.NoteListItems.Add(newEmptyLineItem);
@@ -444,7 +451,7 @@
             await SaveListItem(newEmptyLineItem);
         }
     } 
-    *@
+   
 
     private async Task AddNewListItem()
     {
