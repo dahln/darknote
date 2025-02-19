@@ -26,9 +26,9 @@ namespace Darknote.APi.Controllers
             {
                 return BadRequest("Title must be less than 1,000 characters");
             }
-            if(string.IsNullOrEmpty(model.Content) == false && model.Content.Length > 100000)
+            if(string.IsNullOrEmpty(model.Content) == false && model.Content.Length > 2000000)
             {
-                return BadRequest("Content must be less than 100,000 characters");
+                return BadRequest("Content must be less than 2,000,000 characters");
             }
 
             Database.Note note = new Database.Note()
@@ -108,9 +108,9 @@ namespace Darknote.APi.Controllers
             {
                 return BadRequest("Title must be less than 1,000 characters");
             }
-            if(string.IsNullOrEmpty(model.Content) == false && model.Content.Length > 100000)
+            if(string.IsNullOrEmpty(model.Content) == false && model.Content.Length > 2000000)
             {
-                return BadRequest("Content must be less than 100,000 characters");
+                return BadRequest("Content must be less than 2,000,000 characters");
             }
 
             note.Title = model.Title;

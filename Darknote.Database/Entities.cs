@@ -18,7 +18,7 @@ namespace Darknote.Database
         public string Id { get; set; } = Guid.NewGuid().ToString();
         [MaxLength(1000)]
         public string Title { get; set; }
-        [MaxLength(100000)]
+        [MaxLength(2000000)]
         public string Content { get; set; }
         public string Color { get; set; }
         public bool ListEnabled { get; set; } = false;
