@@ -62,22 +62,10 @@
         }
     </script>
     <script>
-        function clearContentById(id) {
-            var element = document.getElementById(id);
-            if(element != null && element != undefined)
-                element.innerText = "";
-        }
-    </script>
-    <script>
         function setContentById(id, content) {
             var element = document.getElementById(id);
             if(element != null && element != undefined)
                 element.innerText = content;
-        }
-    </script>
-    <script>
-        function removeBrFromItemContent() {
-            document.querySelectorAll('.ItemContent br').forEach(br => br.remove());
         }
     </script>
 

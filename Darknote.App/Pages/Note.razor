@@ -11,9 +11,12 @@
 @using Markdig
 @using Markdig.Extensions.AutoLinks
 
+
 <NavigationLock OnBeforeInternalNavigation="OnLocationChanging"></NavigationLock>
 
-<div class="col-md-8 offset-lg-2 note-wrapper">
+@if(InitFinished)
+{
+<div class="col-lg-8 offset-lg-2 note-wrapper">
     <div class="row mt-3">
         <div class="col-lg-12">
             <NavLink href="/">
@@ -28,10 +31,16 @@
         </div>
     </div>
     <div class="row mt-4">
-        <div class="col-md-12">
+        <div class="col-lg-12">
             <button class="btn btn-outline-primary me-1 mb-2" @onclick="Load" disabled="@(Id == null)">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
+            @if(NoteInstance.Shared == false)
+            {
+            <button class="btn btn-outline-secondary me-2 mb-2" @onclick="Delete" disabled="@(Id == null)">
+                <i class="bi bi-trash @(Id == null ? "" : "delete")"></i>
+            </button> 
+            }
             <div class="btn-group me-2 mb-2">
                 <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
                     @if (string.IsNullOrEmpty(NoteInstance.Color) == false)
@@ -99,12 +108,7 @@
             <button class="btn @(NoteInstance.ListEnabled ? "btn-success" : "btn-outline-secondary") me-2 mb-2" @onclick="ToggleList">
                 <i class="bi bi-list-check list"></i>
             </button> 
-            @if(NoteInstance.Shared == false)
-            {
-            <button class="btn btn-outline-secondary me-2 mb-2" @onclick="Delete" disabled="@(Id == null)">
-                <i class="bi bi-trash @(Id == null ? "" : "delete")"></i>
-            </button> 
-            }
+            
             @if(NoteInstance.ListEnabled)
             {
             <button title="Delete all completed items" class="btn btn-outline-secondary me-1 mb-2" disabled="@(Id == null)" @onclick="DeleteAllCompleted">
@@ -129,7 +133,7 @@
         </div>
     </div>
     <div class="row mt-5 mb-2">
-        <div class="col-md-12">
+        <div class="col-lg-12">
             @if(Editing)
             {
                 <input id="NoteTitle" type="text" class="form-control form-control-lg" placeholder="Title" @bind="NoteInstance.Title" maxlength="1000" />
@@ -141,7 +145,7 @@
         </div>
     </div>
     <div class="row mt-1" style="@(string.IsNullOrEmpty(NoteInstance.Color) == false ? $"border: 1px solid {NoteInstance.Color}; border-radius: 10px; padding: 20px 4px 7px 4px; margin-left:0px; margin-right:0px; margin-bottom: 20px;" : "")">
-        <div class="col-md-12">
+        <div class="col-lg-12">
             @if(NoteInstance.ListEnabled == false)
             {
                 @if(Editing)
@@ -175,12 +179,9 @@
                                     <i class="bi bi-square incomplete pointer"></i>
                                 }
                             </span>
-                            <div @onkeyup="ItemKeyEvent" id="@line.Id" contenteditable="true" class="form-control ItemContent @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
+                            <div id="@line.Id" contenteditable="true" class="form-control ItemContent @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
                                 @line.Content
                             </div>
-                            <button class="btn btn-outline-secondary" @onclick="() => DeleteListItem(line)">
-                                <i class="bi bi-trash delete"></i>
-                            </button>
                             <span class="input-group-text">
                                 <i class="bi bi-grip-vertical drag-handle"></i>
                             </span>
@@ -188,7 +189,7 @@
                     </SortableItemTemplate>
                 </SortableList>
                 <div class="row mb-2">
-                    <div class="col-md-12">
+                    <div class="col-lg-12">
                         <button class="btn btn-outline-success" @onclick="AddNewListItem">
                             <i class="bi bi-plus-lg me-2"></i>New Item
                         </button>
@@ -199,6 +200,7 @@
     </div>
 
 </div>
+}
 
 
 
@@ -219,6 +221,7 @@
     private Darknote.Common.Note NoteInstance = new Darknote.Common.Note();
     private string ContentPreview => Markdown.ToHtml(NoteInstance.Content, BuildPipeline());
     private bool Editing { get; set; }
+    private bool InitFinished { get; set; } = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -232,6 +235,8 @@
             NoteInstance.Title = queryParams["title"];
             NoteInstance.Content = queryParams["content"];
         }
+
+        InitFinished = true;
     }
 
     async private Task<ValueTask> OnLocationChanging(LocationChangingContext context)
@@ -248,9 +253,10 @@
         {
             NoteInstance = await API.GetAsync<Common.Note>($"api/v1/note/{Id}");
             if(NoteInstance == null)
-                _toastService.ShowError("Note failed to load");
-            if(NoteInstance.ListEnabled && NoteInstance.NoteListItems.Any() == false)
-                await AddNewListItem();    
+            {
+                _navigationManager.NavigateTo($"/");
+                return;
+            }
         }
         else
         {
@@ -374,7 +380,6 @@
 
         listItem = await API.PutAsync<Common.NoteListItem>($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
         await JS.InvokeAsync<string>("setContentById", listItem.Id, listItem.Content);
-        await JS.InvokeVoidAsync("removeBrFromItemContent");
     }
 
     async private Task CreateNewListItem(Common.NoteListItem listItem)
@@ -414,16 +419,6 @@
 
             Editing = true;
         }
-        if(NoteInstance.ListEnabled && string.IsNullOrEmpty(NoteInstance.Content) == true)
-        {
-            var newEmptyLineItem = new Common.NoteListItem();
-            NoteInstance.NoteListItems.Add(newEmptyLineItem);
-            await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
-            NoteInstance.Content = string.Empty;
-            await CreateNewListItem(newEmptyLineItem);
-
-            Editing = true;
-        }
         else
         {
             //Must be a for loop because we are using the API to delete them and then remove them from the list.
@@ -440,18 +435,6 @@
         }
     }
 
-    
-    private async Task ItemKeyEvent(KeyboardEventArgs e)
-    {
-        if (e.Code == "Enter" || e.Code == "NumpadEnter")
-        {
-            var newEmptyLineItem = new Common.NoteListItem();
-            NoteInstance.NoteListItems.Add(newEmptyLineItem);
-            await JS.InvokeVoidAsync("setFocusById", newEmptyLineItem.Id);
-            await SaveListItem(newEmptyLineItem);
-        }
-    } 
-   
 
     private async Task AddNewListItem()
     {
@@ -477,11 +460,8 @@
         if (modalResult.Cancelled) { }
         else
         {
-            foreach(var item in NoteInstance.NoteListItems.Where(x => x.Completed))
-            {
-                await DeleteListItem(item, false);                
-            }
-            NoteInstance.NoteListItems = NoteInstance.NoteListItems.Where(x => x.Completed == false).ToList();
+            await API.DeleteAsync($"api/v1/note/{Id}/completed");
+            _navigationManager.NavigateTo($"/note/{Id}", true);
         }
     }
 

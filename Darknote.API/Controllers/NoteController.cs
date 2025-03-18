@@ -395,6 +395,30 @@ namespace Darknote.APi.Controllers
         }
 
         [Authorize]
+        [HttpDelete]
+        [Route("api/v1/note/{noteId}/completed")]
+        async public Task<IActionResult> NoteUpdateItemsCompletedDeleteById(string noteId)
+        {
+            string userId = User.GetUserId();
+            var isAuthorized = await IsAuthorizedForNote(userId, noteId, false);
+            if(!isAuthorized)
+                return BadRequest();
+
+            var note = await _db.Notes.Include(x => x.NoteListItems).Where(c => c.Id == noteId).FirstOrDefaultAsync();
+            if (note == null)
+            {
+                return BadRequest("Note not found");
+            }
+
+            var items = note.NoteListItems.Where(x => x.Completed == true);
+
+            _db.NoteListItems.RemoveRange(items);
+            await _db.SaveChangesAsync();
+
+            return Ok(note.Id);
+        }
+
+        [Authorize]
         [HttpPost]
         [Route("api/v1/note/{noteId}/share")]
         public async Task<IActionResult> AddCollaborator([FromBody] Common.CollaboratorsOnNote model, string noteId)
