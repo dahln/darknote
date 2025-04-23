@@ -23,12 +23,7 @@
 .checkuncheck {
     color: orange;
 }
-.completed {
-    color: mediumpurple;
-}
-.incomplete {
-    color: #707070;
-}
+
 
 .color-circle {
     display: inline-block;
