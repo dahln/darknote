@@ -23,8 +23,6 @@ namespace Darknote.Common
         public string Content { get; set; } = "";
         public bool Completed { get; set; }
         public int SortOrder { get; set; }
-
-        public string NoteId { get; set; }
     }
 
     public class SortOrderUpdate

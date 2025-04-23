@@ -1,0 +1,42 @@
+@using Darknote.App.Services
+@using Darknote.Common
+@using Markdig
+@using Markdig.Extensions.AutoLinks
+
+@inject API API
+@inject IJSRuntime JS
+
+
+<div class="input-group input-group-lg mb-2 item">
+    <span class="input-group-text" @onclick="() => ToggleItem()">
+        @if(Item.Completed)
+        {
+            <i class="bi bi-check-circle-fill completed pointer"></i>
+        }
+        else
+        {
+            <i class="bi bi-square incomplete pointer"></i>
+        }
+    </span>
+    <input type="text" @bind="Item.Content" class="form-control ItemContent @(Item.Completed ? "strike-through" : "")" @onblur="() => SaveListItem()" disabled="@Item.Completed" autocomplete="off" maxlength="1000" />
+</div>
+
+@code {
+
+    [Parameter]
+    public NoteListItem Item { get; set; }
+
+    [Parameter]
+    public string NoteId { get; set; }
+
+    private async Task ToggleItem()
+    {
+        Item.Completed = Item.Completed ? false : true;
+        await SaveListItem();
+    }
+
+    private async Task SaveListItem()
+    {
+        Item = await API.PutAsync<Common.NoteListItem>($"api/v1/note/{NoteId}/item/{Item.Id}", Item, false);
+    }
+}    

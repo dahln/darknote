@@ -166,28 +166,10 @@
             }
             else 
             {
-                <SortableList Id="dragHandles" Handle=".drag-handle" OnUpdate="@SortList" Items="NoteInstance.NoteListItems" Context="line">
-                    <SortableItemTemplate>
-                        <div class="input-group input-group-lg mb-2 item">
-                            <span class="input-group-text" @onclick="() => ItemToggle(line)">
-                                @if(line.Completed)
-                                {
-                                    <i class="bi bi-check-circle-fill completed pointer"></i>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-square incomplete pointer"></i>
-                                }
-                            </span>
-                            <div id="@line.Id" contenteditable="true" class="form-control ItemContent @(line.Completed ? "strike-through" : "")" @onblur="() => SaveListItem(line)" disabled="@line.Completed" autocomplete="off" maxlength="1000">
-                                @line.Content
-                            </div>
-                            <span class="input-group-text">
-                                <i class="bi bi-grip-vertical drag-handle"></i>
-                            </span>
-                        </div>
-                    </SortableItemTemplate>
-                </SortableList>
+                @foreach(var line in NoteInstance.NoteListItems)
+                {
+                    <MarkDownItem Item="line" NoteId="@Id" />
+                }
                 <div class="row mb-2">
                     <div class="col-lg-12">
                         <button class="btn btn-outline-success" @onclick="AddNewListItem">
@@ -285,7 +267,7 @@
     {
         var options = new ModalOptions() 
         { 
-            Position = ModalPosition.TopCenter,
+            Position = ModalPosition.Middle,
             Size = ModalSize.ExtraLarge,
             Class = "bg-dark text-white modal-custom modal-size-large",
             OverlayCustomClass = "custom-modal-overlay"
@@ -318,38 +300,6 @@
         return pipeline;
     }
 
-    private async Task SortList((int oldIndex, int newIndex) indices)
-    {
-        var (oldIndex, newIndex) = indices;
-
-        var items = this.NoteInstance.NoteListItems;
-        var itemToMove = NoteInstance.NoteListItems[oldIndex];
-        NoteInstance.NoteListItems.RemoveAt(oldIndex);
-
-        if (newIndex < NoteInstance.NoteListItems.Count)
-        {
-            NoteInstance.NoteListItems.Insert(newIndex, itemToMove);
-        }
-        else
-        {
-            NoteInstance.NoteListItems.Add(itemToMove);
-        }
-
-        for(int a = 0; a < NoteInstance.NoteListItems.Count; a++)
-        {
-            NoteInstance.NoteListItems[a].SortOrder = a;
-        }
-
-        var saveSortOrder = NoteInstance.NoteListItems.Select(x => new Common.SortOrderUpdate()
-        {
-            Id = x.Id,
-            NewSortOrderValue = x.SortOrder
-        }).ToList();
-        await API.PostAsync("api/v1/items/sort", saveSortOrder, false);
-
-        StateHasChanged();
-    }
-
     public async Task ToggleEdit()
     {
         Editing = Editing ? false : true;
@@ -372,14 +322,7 @@
 
     async private Task SaveListItem(Common.NoteListItem listItem)
     {
-        // Get the content from the div using JSInterop
-        var updatedContent = await JS.InvokeAsync<string>("getContentById", listItem.Id);
-
-        // Update the line.Content with the new value
-        listItem.Content = updatedContent;
-
         listItem = await API.PutAsync<Common.NoteListItem>($"api/v1/note/{Id}/item/{listItem.Id}", listItem, false);
-        await JS.InvokeAsync<string>("setContentById", listItem.Id, listItem.Content);
     }
 
     async private Task CreateNewListItem(Common.NoteListItem listItem)
@@ -448,7 +391,7 @@
     {
         var options = new ModalOptions() 
         { 
-            Position = ModalPosition.TopCenter,
+            Position = ModalPosition.Middle,
             Size = ModalSize.ExtraLarge,
             Class = "bg-dark text-white modal-custom modal-size-large",
             OverlayCustomClass = "custom-modal-overlay"
@@ -478,7 +421,7 @@
     {
         var options = new ModalOptions() 
         { 
-            Position = ModalPosition.TopCenter,
+            Position = ModalPosition.Middle,
             Size = ModalSize.ExtraLarge,
             Class = "bg-dark text-white modal-custom modal-size-large",
             OverlayCustomClass = "custom-modal-overlay"
@@ -500,7 +443,7 @@
     {
         var options = new ModalOptions() 
         { 
-            Position = ModalPosition.TopCenter,
+            Position = ModalPosition.Middle,
             Size = ModalSize.ExtraLarge,
             Class = "bg-dark text-white modal-custom modal-size-large",
             OverlayCustomClass = "custom-modal-overlay"

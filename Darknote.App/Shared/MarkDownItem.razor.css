@@ -1,0 +1,15 @@
+.item {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.completed {
+    color: mediumpurple;
+}
+.incomplete {
+    color: #707070;
+}
